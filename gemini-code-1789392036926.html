@@ -1,0 +1,633 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+  <title>Telegram Receipt Mini App</title>
+
+  <!-- Telegram WebApp SDK -->
+  <script src="https://telegram.org/js/telegram-web-app.js"></script>
+
+  <style>
+    :root {
+      --tg-theme-bg-color: #0f172a;
+      --tg-theme-secondary-bg-color: #1e293b;
+      --tg-theme-text-color: #f8fafc;
+      --tg-theme-hint-color: #94a3b8;
+      --tg-theme-link-color: #38bdf8;
+      --tg-theme-button-color: #2563eb;
+      --tg-theme-button-text-color: #ffffff;
+      --tg-theme-border-color: #334155;
+      --tg-theme-danger-color: #ef4444;
+    }
+
+    * {
+      box-sizing: border-box;
+      margin: 0;
+      padding: 0;
+      font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+      -webkit-tap-highlight-color: transparent;
+    }
+
+    body {
+      background-color: var(--tg-theme-bg-color);
+      color: var(--tg-theme-text-color);
+      display: flex;
+      justify-content: center;
+      align-items: flex-start;
+      min-height: 100vh;
+      overflow-x: hidden;
+    }
+
+    /* Layout Frame */
+    .app-container {
+      width: 100%;
+      max-width: 480px;
+      min-height: 100vh;
+      background-color: var(--tg-theme-bg-color);
+      position: relative;
+      display: flex;
+      flex-direction: column;
+    }
+
+    /* Screen Management */
+    .screen {
+      padding: 16px;
+      display: none;
+      flex-direction: column;
+      gap: 16px;
+      padding-bottom: 90px;
+      flex: 1;
+    }
+
+    .screen.active {
+      display: flex;
+    }
+
+    /* Cards & Components */
+    .card {
+      background-color: var(--tg-theme-secondary-bg-color);
+      border-radius: 16px;
+      padding: 16px;
+      display: flex;
+      flex-direction: column;
+      gap: 12px;
+      border: 1px solid var(--tg-theme-border-color);
+    }
+
+    .header {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      margin-bottom: 4px;
+    }
+
+    .title {
+      font-size: 20px;
+      font-weight: 700;
+    }
+
+    .subtitle {
+      font-size: 13px;
+      color: var(--tg-theme-hint-color);
+    }
+
+    /* Upload Area */
+    .upload-box {
+      border: 2px dashed var(--tg-theme-link-color);
+      border-radius: 20px;
+      padding: 32px 16px;
+      text-align: center;
+      background-color: rgba(56, 189, 248, 0.05);
+      cursor: pointer;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      gap: 12px;
+      transition: background-color 0.2s;
+    }
+
+    .upload-box:active {
+      background-color: rgba(56, 189, 248, 0.15);
+    }
+
+    .upload-icon {
+      width: 48px;
+      height: 48px;
+      background-color: rgba(56, 189, 248, 0.2);
+      border-radius: 50%;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      color: var(--tg-theme-link-color);
+      font-size: 24px;
+    }
+
+    /* Buttons */
+    .btn-primary {
+      background-color: var(--tg-theme-button-color);
+      color: var(--tg-theme-button-text-color);
+      border: none;
+      border-radius: 14px;
+      padding: 16px;
+      font-size: 16px;
+      font-weight: 600;
+      cursor: pointer;
+      width: 100%;
+      text-align: center;
+      transition: opacity 0.2s;
+    }
+
+    .btn-primary:active {
+      opacity: 0.85;
+    }
+
+    .btn-secondary {
+      background-color: transparent;
+      color: var(--tg-theme-link-color);
+      border: 1px solid var(--tg-theme-link-color);
+      border-radius: 12px;
+      padding: 8px 12px;
+      font-size: 13px;
+      font-weight: 600;
+      cursor: pointer;
+    }
+
+    /* Form Inputs */
+    .form-group {
+      display: flex;
+      flex-direction: column;
+      gap: 6px;
+    }
+
+    .form-label {
+      font-size: 12px;
+      color: var(--tg-theme-hint-color);
+      text-transform: uppercase;
+      letter-spacing: 0.5px;
+    }
+
+    .form-input {
+      background-color: var(--tg-theme-bg-color);
+      border: 1px solid var(--tg-theme-border-color);
+      border-radius: 10px;
+      padding: 10px 12px;
+      color: var(--tg-theme-text-color);
+      font-size: 14px;
+      outline: none;
+    }
+
+    .form-input:focus {
+      border-color: var(--tg-theme-link-color);
+    }
+
+    /* Table Rows */
+    .item-row {
+      display: grid;
+      grid-template-columns: 2fr 1fr 1fr 1fr auto;
+      gap: 6px;
+      align-items: center;
+      padding-bottom: 8px;
+      border-bottom: 1px solid var(--tg-theme-border-color);
+    }
+
+    .btn-delete {
+      color: var(--tg-theme-danger-color);
+      background: none;
+      border: none;
+      font-size: 18px;
+      cursor: pointer;
+      padding: 0 4px;
+    }
+
+    /* Dynamic Lists */
+    .list-item {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      padding: 12px 0;
+      border-bottom: 1px solid var(--tg-theme-border-color);
+      cursor: pointer;
+    }
+
+    .list-item:last-child {
+      border-bottom: none;
+    }
+
+    .item-title {
+      font-weight: 600;
+      font-size: 15px;
+    }
+
+    .item-sub {
+      font-size: 12px;
+      color: var(--tg-theme-hint-color);
+    }
+
+    .item-amount {
+      font-weight: 700;
+      font-size: 15px;
+      text-align: right;
+    }
+
+    /* Bottom Navigation */
+    .nav-bar {
+      position: fixed;
+      bottom: 0;
+      left: 50%;
+      transform: translateX(-50%);
+      width: 100%;
+      max-width: 480px;
+      height: 65px;
+      background-color: var(--tg-theme-secondary-bg-color);
+      border-top: 1px solid var(--tg-theme-border-color);
+      display: flex;
+      justify-content: space-around;
+      align-items: center;
+      z-index: 20;
+    }
+
+    .nav-item {
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      gap: 4px;
+      color: var(--tg-theme-hint-color);
+      font-size: 11px;
+      cursor: pointer;
+      background: none;
+      border: none;
+      width: 50%;
+    }
+
+    .nav-item.active {
+      color: var(--tg-theme-link-color);
+    }
+
+    .nav-icon {
+      font-size: 20px;
+    }
+
+    /* Loader Modal */
+    .loader-overlay {
+      position: fixed;
+      top: 0;
+      left: 0;
+      width: 100%;
+      height: 100%;
+      background-color: rgba(15, 23, 42, 0.85);
+      display: none;
+      flex-direction: column;
+      justify-content: center;
+      align-items: center;
+      gap: 16px;
+      z-index: 30;
+    }
+
+    .spinner {
+      width: 40px;
+      height: 40px;
+      border: 4px solid var(--tg-theme-border-color);
+      border-top: 4px solid var(--tg-theme-link-color);
+      border-radius: 50%;
+      animation: spin 1s linear infinite;
+    }
+
+    @keyframes spin {
+      0% { transform: rotate(0deg); }
+      100% { transform: rotate(360deg); }
+    }
+  </style>
+</head>
+<body>
+
+  <div class="app-container">
+
+    <!-- Loader Modal -->
+    <div class="loader-overlay" id="loader">
+      <div class="spinner"></div>
+      <div style="font-weight: 600;">Распознавание чека...</div>
+      <div class="subtitle">Извлечение товаров и цен</div>
+    </div>
+
+    <!-- SCREEN 1: MAIN / SCAN -->
+    <div class="screen active" id="screen-main">
+      <div class="header">
+        <div>
+          <div class="title">Учет продуктов</div>
+          <div class="subtitle">Сканирование и загрузка чеков</div>
+        </div>
+      </div>
+
+      <div class="upload-box" onclick="simulateScan()">
+        <div class="upload-icon">📷</div>
+        <div style="font-weight: 600;">Сфотографировать чек</div>
+        <div class="subtitle">или выберите из галереи</div>
+      </div>
+
+      <div class="card">
+        <div style="font-weight: 600; font-size: 15px;">Недавние чеки</div>
+        <div id="recent-list">
+          <!-- Dynamic rendering -->
+        </div>
+      </div>
+    </div>
+
+    <!-- SCREEN 2: EDIT / VERIFY -->
+    <div class="screen" id="screen-edit">
+      <div class="header">
+        <button class="btn-secondary" onclick="switchScreen('screen-main')">← Назад</button>
+        <div class="title" style="font-size: 16px;">Проверка чека</div>
+      </div>
+
+      <div class="card">
+        <div class="form-group">
+          <label class="form-label">Магазин</label>
+          <input type="text" class="form-input" id="edit-store" value="Supermarket Magnum">
+        </div>
+        <div class="form-group">
+          <label class="form-label">Дата покупки</label>
+          <input type="date" class="form-input" id="edit-date" value="2026-09-14">
+        </div>
+      </div>
+
+      <div class="card">
+        <div style="display: flex; justify-content: space-between; align-items: center;">
+          <div style="font-weight: 600; font-size: 14px;">Позиции чека</div>
+          <button class="btn-secondary" style="padding: 4px 8px; font-size: 12px;" onclick="addItemRow()">+ Добавить</button>
+        </div>
+
+        <div style="font-size: 11px; color: var(--tg-theme-hint-color); display: grid; grid-template-columns: 2fr 1fr 1fr 1fr auto; gap: 6px;">
+          <span>Название</span>
+          <span>Кол-во</span>
+          <span>Цена</span>
+          <span>Сумма</span>
+          <span></span>
+        </div>
+
+        <div id="items-container" style="display: flex; flex-direction: column; gap: 8px;">
+          <!-- Items rendered dynamically -->
+        </div>
+
+        <div style="display: flex; justify-content: space-between; align-items: center; padding-top: 10px; border-top: 1px solid var(--tg-theme-border-color); font-weight: 700;">
+          <span>Итого:</span>
+          <span id="total-amount-display">0 ₸</span>
+        </div>
+      </div>
+
+      <button class="btn-primary" onclick="saveReceipt()">Сохранить чек</button>
+    </div>
+
+    <!-- SCREEN 3: MONTHLY REPORT -->
+    <div class="screen" id="screen-report">
+      <div class="header">
+        <div>
+          <div class="title">Отчет за месяц</div>
+          <div class="subtitle">Сентябрь 2026</div>
+        </div>
+      </div>
+
+      <div class="card" style="background: linear-gradient(135deg, #1e293b, #0f172a); border-color: var(--tg-theme-link-color);">
+        <div class="subtitle">Общие расходы за месяц</div>
+        <div style="font-size: 28px; font-weight: 800; color: var(--tg-theme-link-color);" id="report-total">0 ₸</div>
+        <div class="subtitle" id="report-count">Обработано чеков: 0</div>
+      </div>
+
+      <div class="card">
+        <div style="font-weight: 600; font-size: 15px;">Чеки за сентябрь</div>
+        <div id="monthly-list">
+          <!-- Dynamic rendering -->
+        </div>
+      </div>
+    </div>
+
+    <!-- Bottom Nav -->
+    <div class="nav-bar">
+      <button class="nav-item active" id="nav-main" onclick="switchScreen('screen-main')">
+        <span class="nav-icon">🧾</span>
+        <span>Сканер</span>
+      </button>
+      <button class="nav-item" id="nav-report" onclick="switchScreen('screen-report')">
+        <span class="nav-icon">📊</span>
+        <span>Отчет</span>
+      </button>
+    </div>
+
+  </div>
+
+  <script>
+    // Initialize Telegram WebApp SDK
+    const tg = window.Telegram?.WebApp;
+    if (tg) {
+      tg.ready();
+      tg.expand();
+    }
+
+    // App State
+    let receipts = [
+      {
+        id: 1,
+        store: "Magnum Daily",
+        date: "2026-09-14",
+        total: 4250,
+        items: [
+          { name: "Молоко 2.5%", qty: 2, price: 550, sum: 1100 },
+          { name: "Хлеб ржаной", qty: 1, price: 250, sum: 250 },
+          { name: "Сыр Гауда 200г", qty: 1, price: 1900, sum: 1900 },
+          { name: "Яблоки Гала 1кг", qty: 1, price: 1000, sum: 1000 }
+        ]
+      },
+      {
+        id: 2,
+        store: "Small Supermarket",
+        date: "2026-09-10",
+        total: 2800,
+        items: [
+          { name: "Яйца 10шт", qty: 1, price: 800, sum: 800 },
+          { name: "Масло сливочное", qty: 1, price: 2000, sum: 2000 }
+        ]
+      }
+    ];
+
+    let currentReceipt = null;
+
+    // Navigation Switches
+    function switchScreen(screenId) {
+      document.querySelectorAll('.screen').forEach(s => s.classList.remove('active'));
+      document.getElementById(screenId).classList.add('active');
+
+      document.querySelectorAll('.nav-item').forEach(n => n.classList.remove('active'));
+      if (screenId === 'screen-main') {
+        document.getElementById('nav-main').classList.add('active');
+        renderRecentList();
+      } else if (screenId === 'screen-report') {
+        document.getElementById('nav-report').classList.add('active');
+        renderReport();
+      }
+    }
+
+    // Mock OCR Action
+    function simulateScan() {
+      document.getElementById('loader').style.display = 'flex';
+      setTimeout(() => {
+        document.getElementById('loader').style.display = 'none';
+        
+        currentReceipt = {
+          id: Date.now(),
+          store: "Galmart Supermarket",
+          date: "2026-09-14",
+          total: 3150,
+          items: [
+            { name: "Вода 1.5л", qty: 2, price: 300, sum: 600 },
+            { name: "Кофе растворимый", qty: 1, price: 2550, sum: 2550 }
+          ]
+        };
+        
+        loadEditForm(currentReceipt);
+        switchScreen('screen-edit');
+      }, 1200);
+    }
+
+    // Load Data into Form
+    function loadEditForm(receipt) {
+      document.getElementById('edit-store').value = receipt.store;
+      document.getElementById('edit-date').value = receipt.date;
+      
+      const container = document.getElementById('items-container');
+      container.innerHTML = '';
+      
+      receipt.items.forEach((item, index) => {
+        container.appendChild(createItemRow(item, index));
+      });
+      
+      recalculateTotal();
+    }
+
+    function createItemRow(item = { name: '', qty: 1, price: 0, sum: 0 }) {
+      const row = document.createElement('div');
+      row.className = 'item-row';
+      row.innerHTML = `
+        <input type="text" class="form-input item-name" value="${item.name}" placeholder="Товар">
+        <input type="number" class="form-input item-qty" value="${item.qty}" min="1" onchange="updateRowSum(this)">
+        <input type="number" class="form-input item-price" value="${item.price}" min="0" onchange="updateRowSum(this)">
+        <input type="number" class="form-input item-sum" value="${item.sum}" readonly>
+        <button class="btn-delete" onclick="deleteRow(this)">×</button>
+      `;
+      return row;
+    }
+
+    function addItemRow() {
+      const container = document.getElementById('items-container');
+      container.appendChild(createItemRow());
+      recalculateTotal();
+    }
+
+    function deleteRow(btn) {
+      btn.closest('.item-row').remove();
+      recalculateTotal();
+    }
+
+    function updateRowSum(input) {
+      const row = input.closest('.item-row');
+      const qty = parseFloat(row.querySelector('.item-qty').value) || 0;
+      const price = parseFloat(row.querySelector('.item-price').value) || 0;
+      row.querySelector('.item-sum').value = qty * price;
+      recalculateTotal();
+    }
+
+    function recalculateTotal() {
+      let total = 0;
+      document.querySelectorAll('.item-sum').forEach(inp => {
+        total += parseFloat(inp.value) || 0;
+      });
+      document.getElementById('total-amount-display').innerText = `${total.toLocaleString()} ₸`;
+    }
+
+    // Save Logic
+    function saveReceipt() {
+      const store = document.getElementById('edit-store').value;
+      const date = document.getElementById('edit-date').value;
+      const items = [];
+      let total = 0;
+
+      document.querySelectorAll('.item-row').forEach(row => {
+        const name = row.querySelector('.item-name').value;
+        const qty = parseFloat(row.querySelector('.item-qty').value) || 0;
+        const price = parseFloat(row.querySelector('.item-price').value) || 0;
+        const sum = parseFloat(row.querySelector('.item-sum').value) || 0;
+        
+        if (name) {
+          items.push({ name, qty, price, sum });
+          total += sum;
+        }
+      });
+
+      if (currentReceipt) {
+        const idx = receipts.findIndex(r => r.id === currentReceipt.id);
+        if (idx !== -1) {
+          receipts[idx] = { id: currentReceipt.id, store, date, total, items };
+        } else {
+          receipts.unshift({ id: Date.now(), store, date, total, items });
+        }
+      }
+
+      switchScreen('screen-main');
+    }
+
+    // Render Data
+    function renderRecentList() {
+      const container = document.getElementById('recent-list');
+      container.innerHTML = '';
+
+      receipts.slice(0, 3).forEach(r => {
+        const item = document.createElement('div');
+        item.className = 'list-item';
+        item.onclick = () => {
+          currentReceipt = r;
+          loadEditForm(r);
+          switchScreen('screen-edit');
+        };
+        item.innerHTML = `
+          <div>
+            <div class="item-title">${r.store}</div>
+            <div class="item-sub">${r.date} • ${r.items.length} поз.</div>
+          </div>
+          <div class="item-amount">${r.total.toLocaleString()} ₸</div>
+        `;
+        container.appendChild(item);
+      });
+    }
+
+    function renderReport() {
+      const container = document.getElementById('monthly-list');
+      container.innerHTML = '';
+      let sumTotal = 0;
+
+      receipts.forEach(r => {
+        sumTotal += r.total;
+        const item = document.createElement('div');
+        item.className = 'list-item';
+        item.onclick = () => {
+          currentReceipt = r;
+          loadEditForm(r);
+          switchScreen('screen-edit');
+        };
+        item.innerHTML = `
+          <div>
+            <div class="item-title">${r.store}</div>
+            <div class="item-sub">${r.date}</div>
+          </div>
+          <div class="item-amount">${r.total.toLocaleString()} ₸</div>
+        `;
+        container.appendChild(item);
+      });
+
+      document.getElementById('report-total').innerText = `${sumTotal.toLocaleString()} ₸`;
+      document.getElementById('report-count').innerText = `Обработано чеков: ${receipts.length}`;
+    }
+
+    // Initial Load
+    renderRecentList();
+  </script>
+</body>
+</html>
