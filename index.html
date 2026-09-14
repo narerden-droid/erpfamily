@@ -2,25 +2,10 @@
 <html lang="ru">
 <head>
   <meta charset="UTF-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-  <title>Telegram Receipt Mini App</title>
-
-  <!-- Telegram WebApp SDK -->
-  <script src="https://telegram.org/js/telegram-web-app.js"></script>
-
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Telegram Mini App - Учет расходов по чекам</title>
   <style>
-    :root {
-      --tg-theme-bg-color: #0f172a;
-      --tg-theme-secondary-bg-color: #1e293b;
-      --tg-theme-text-color: #f8fafc;
-      --tg-theme-hint-color: #94a3b8;
-      --tg-theme-link-color: #38bdf8;
-      --tg-theme-button-color: #2563eb;
-      --tg-theme-button-text-color: #ffffff;
-      --tg-theme-border-color: #334155;
-      --tg-theme-danger-color: #ef4444;
-    }
-
+    /* Базовые сбросы и оформление страницы */
     * {
       box-sizing: border-box;
       margin: 0;
@@ -30,604 +15,870 @@
     }
 
     body {
-      background-color: var(--tg-theme-bg-color);
-      color: var(--tg-theme-text-color);
+      background-color: #0f172a;
       display: flex;
       justify-content: center;
-      align-items: flex-start;
+      align-items: center;
       min-height: 100vh;
-      overflow-x: hidden;
+      color: #000000;
     }
 
-    /* Layout Frame */
-    .app-container {
-      width: 100%;
-      max-width: 480px;
-      min-height: 100vh;
-      background-color: var(--tg-theme-bg-color);
+    /* Эмуляция мобильного экрана 390x844 */
+    .device-container {
+      width: 390px;
+      height: 844px;
+      background-color: #efeff4;
+      border-radius: 40px;
+      box-shadow: 0 20px 40px rgba(0, 0, 0, 0.5), 0 0 0 12px #1e293b;
+      display: flex;
+      flex-direction: column;
       position: relative;
-      display: flex;
-      flex-direction: column;
+      overflow: hidden;
     }
 
-    /* Screen Management */
-    .screen {
-      padding: 16px;
-      display: none;
-      flex-direction: column;
-      gap: 16px;
-      padding-bottom: 90px;
-      flex: 1;
-    }
-
-    .screen.active {
+    /* Плашка строки состояния (Status bar) */
+    .status-bar {
+      height: 44px;
+      background-color: #ffffff;
       display: flex;
-    }
-
-    /* Cards & Components */
-    .card {
-      background-color: var(--tg-theme-secondary-bg-color);
-      border-radius: 16px;
-      padding: 16px;
-      display: flex;
-      flex-direction: column;
-      gap: 12px;
-      border: 1px solid var(--tg-theme-border-color);
-    }
-
-    .header {
-      display: flex;
-      align-items: center;
       justify-content: space-between;
-      margin-bottom: 4px;
-    }
-
-    .title {
-      font-size: 20px;
-      font-weight: 700;
-    }
-
-    .subtitle {
-      font-size: 13px;
-      color: var(--tg-theme-hint-color);
-    }
-
-    /* Upload Area */
-    .upload-box {
-      border: 2px dashed var(--tg-theme-link-color);
-      border-radius: 20px;
-      padding: 32px 16px;
-      text-align: center;
-      background-color: rgba(56, 189, 248, 0.05);
-      cursor: pointer;
-      display: flex;
-      flex-direction: column;
       align-items: center;
-      gap: 12px;
-      transition: background-color 0.2s;
-    }
-
-    .upload-box:active {
-      background-color: rgba(56, 189, 248, 0.15);
-    }
-
-    .upload-icon {
-      width: 48px;
-      height: 48px;
-      background-color: rgba(56, 189, 248, 0.2);
-      border-radius: 50%;
-      display: flex;
-      align-items: center;
-      justify-content: center;
-      color: var(--tg-theme-link-color);
-      font-size: 24px;
-    }
-
-    /* Buttons */
-    .btn-primary {
-      background-color: var(--tg-theme-button-color);
-      color: var(--tg-theme-button-text-color);
-      border: none;
-      border-radius: 14px;
-      padding: 16px;
-      font-size: 16px;
-      font-weight: 600;
-      cursor: pointer;
-      width: 100%;
-      text-align: center;
-      transition: opacity 0.2s;
-    }
-
-    .btn-primary:active {
-      opacity: 0.85;
-    }
-
-    .btn-secondary {
-      background-color: transparent;
-      color: var(--tg-theme-link-color);
-      border: 1px solid var(--tg-theme-link-color);
-      border-radius: 12px;
-      padding: 8px 12px;
-      font-size: 13px;
-      font-weight: 600;
-      cursor: pointer;
-    }
-
-    /* Form Inputs */
-    .form-group {
-      display: flex;
-      flex-direction: column;
-      gap: 6px;
-    }
-
-    .form-label {
-      font-size: 12px;
-      color: var(--tg-theme-hint-color);
-      text-transform: uppercase;
-      letter-spacing: 0.5px;
-    }
-
-    .form-input {
-      background-color: var(--tg-theme-bg-color);
-      border: 1px solid var(--tg-theme-border-color);
-      border-radius: 10px;
-      padding: 10px 12px;
-      color: var(--tg-theme-text-color);
+      padding: 0 24px;
       font-size: 14px;
-      outline: none;
-    }
-
-    .form-input:focus {
-      border-color: var(--tg-theme-link-color);
-    }
-
-    /* Table Rows */
-    .item-row {
-      display: grid;
-      grid-template-columns: 2fr 1fr 1fr 1fr auto;
-      gap: 6px;
-      align-items: center;
-      padding-bottom: 8px;
-      border-bottom: 1px solid var(--tg-theme-border-color);
-    }
-
-    .btn-delete {
-      color: var(--tg-theme-danger-color);
-      background: none;
-      border: none;
-      font-size: 18px;
-      cursor: pointer;
-      padding: 0 4px;
-    }
-
-    /* Dynamic Lists */
-    .list-item {
-      display: flex;
-      justify-content: space-between;
-      align-items: center;
-      padding: 12px 0;
-      border-bottom: 1px solid var(--tg-theme-border-color);
-      cursor: pointer;
-    }
-
-    .list-item:last-child {
-      border-bottom: none;
-    }
-
-    .item-title {
       font-weight: 600;
-      font-size: 15px;
+      color: #000;
+      border-bottom: 1px solid #e5e5ea;
+      user-select: none;
     }
 
-    .item-sub {
-      font-size: 12px;
-      color: var(--tg-theme-hint-color);
+    /* Основная область контента */
+    .app-content {
+      flex: 1;
+      overflow-y: auto;
+      padding: 16px;
+      position: relative;
     }
 
-    .item-amount {
-      font-weight: 700;
-      font-size: 15px;
-      text-align: right;
-    }
-
-    /* Bottom Navigation */
-    .nav-bar {
-      position: fixed;
-      bottom: 0;
-      left: 50%;
-      transform: translateX(-50%);
-      width: 100%;
-      max-width: 480px;
+    /* Нижняя панель навигации (Telegram style) */
+    .bottom-nav {
       height: 65px;
-      background-color: var(--tg-theme-secondary-bg-color);
-      border-top: 1px solid var(--tg-theme-border-color);
+      background-color: #ffffff;
+      border-top: 1px solid #d1d1d6;
       display: flex;
       justify-content: space-around;
       align-items: center;
-      z-index: 20;
+      padding-bottom: 10px;
     }
 
     .nav-item {
       display: flex;
       flex-direction: column;
       align-items: center;
-      gap: 4px;
-      color: var(--tg-theme-hint-color);
       font-size: 11px;
+      color: #8e8e93;
       cursor: pointer;
-      background: none;
       border: none;
+      background: none;
       width: 50%;
     }
 
     .nav-item.active {
-      color: var(--tg-theme-link-color);
+      color: #007aff;
     }
 
     .nav-icon {
       font-size: 20px;
+      margin-bottom: 2px;
     }
 
-    /* Loader Modal */
-    .loader-overlay {
-      position: fixed;
-      top: 0;
-      left: 0;
-      width: 100%;
-      height: 100%;
-      background-color: rgba(15, 23, 42, 0.85);
+    /* Управление видимостью экранов */
+    .screen {
       display: none;
+    }
+
+    .screen.active {
+      display: block;
+    }
+
+    /* Стили компонентов и карточек */
+    .card {
+      background: #ffffff;
+      border-radius: 14px;
+      padding: 16px;
+      margin-bottom: 16px;
+      box-shadow: 0 1px 3px rgba(0,0,0,0.05);
+    }
+
+    .title {
+      font-size: 20px;
+      font-weight: 700;
+      margin-bottom: 16px;
+      color: #000000;
+    }
+
+    .subtitle {
+      font-size: 14px;
+      color: #8e8e93;
+      margin-bottom: 12px;
+      text-transform: uppercase;
+      font-weight: 600;
+      letter-spacing: -0.2px;
+    }
+
+    /* Кнопки */
+    .btn-primary {
+      width: 100%;
+      background-color: #007aff;
+      color: #ffffff;
+      border: none;
+      border-radius: 12px;
+      padding: 14px;
+      font-size: 16px;
+      font-weight: 600;
+      cursor: pointer;
+      text-align: center;
+      box-shadow: 0 2px 6px rgba(0, 122, 255, 0.2);
+    }
+
+    .btn-primary:active {
+      background-color: #0056b3;
+    }
+
+    .btn-secondary {
+      background-color: #e5e5ea;
+      color: #007aff;
+      border: none;
+      border-radius: 8px;
+      padding: 8px 12px;
+      font-size: 13px;
+      font-weight: 600;
+      cursor: pointer;
+    }
+
+    .btn-danger {
+      background-color: #ffe5e5;
+      color: #ff3b30;
+      border: none;
+      border-radius: 6px;
+      padding: 4px 8px;
+      font-size: 12px;
+      cursor: pointer;
+    }
+
+    /* Область загрузки чека */
+    .upload-box {
+      border: 2px dashed #007aff;
+      background-color: #f0f8ff;
+      border-radius: 16px;
+      padding: 30px 20px;
+      text-align: center;
+      cursor: pointer;
+      margin-bottom: 20px;
+    }
+
+    .upload-icon {
+      font-size: 40px;
+      margin-bottom: 10px;
+      display: block;
+    }
+
+    /* Списки расходов */
+    .receipt-item {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      padding: 12px 0;
+      border-bottom: 1px solid #efeff4;
+      cursor: pointer;
+    }
+
+    .receipt-item:last-child {
+      border-bottom: none;
+    }
+
+    .receipt-info .store {
+      font-weight: 600;
+      font-size: 15px;
+    }
+
+    .receipt-info .date {
+      font-size: 12px;
+      color: #8e8e93;
+      margin-top: 2px;
+    }
+
+    .receipt-amount {
+      font-weight: 700;
+      font-size: 15px;
+    }
+
+    /* Поля ввода формы редактирования */
+    .form-group {
+      margin-bottom: 12px;
+    }
+
+    .form-group label {
+      display: block;
+      font-size: 12px;
+      color: #8e8e93;
+      margin-bottom: 4px;
+    }
+
+    .form-input {
+      width: 100%;
+      padding: 10px;
+      border: 1px solid #c7c7cc;
+      border-radius: 8px;
+      font-size: 15px;
+      background: #fff;
+    }
+
+    /* Таблица редактирования товаров */
+    .items-table {
+      width: 100%;
+      border-collapse: collapse;
+      margin-bottom: 12px;
+    }
+
+    .items-table th {
+      text-align: left;
+      font-size: 11px;
+      color: #8e8e93;
+      padding-bottom: 6px;
+    }
+
+    .items-table td {
+      padding: 6px 2px;
+    }
+
+    .items-table input {
+      width: 100%;
+      padding: 6px;
+      border: 1px solid #d1d1d6;
+      border-radius: 6px;
+      font-size: 13px;
+    }
+
+    /* Лоадер сканирования */
+    .loader-overlay {
+      display: none;
+      position: absolute;
+      top: 0; left: 0; right: 0; bottom: 0;
+      background: rgba(255,255,255,0.9);
+      z-index: 10;
       flex-direction: column;
       justify-content: center;
       align-items: center;
-      gap: 16px;
-      z-index: 30;
     }
 
     .spinner {
       width: 40px;
       height: 40px;
-      border: 4px solid var(--tg-theme-border-color);
-      border-top: 4px solid var(--tg-theme-link-color);
+      border: 4px solid #e5e5ea;
+      border-top: 4px solid #007aff;
       border-radius: 50%;
       animation: spin 1s linear infinite;
+      margin-bottom: 16px;
     }
 
     @keyframes spin {
       0% { transform: rotate(0deg); }
       100% { transform: rotate(360deg); }
     }
+
+    /* Шапка экрана с кнопкой "Назад" */
+    .screen-header {
+      display: flex;
+      align-items: center;
+      margin-bottom: 16px;
+    }
+
+    .btn-back {
+      background: none;
+      border: none;
+      color: #007aff;
+      font-size: 16px;
+      cursor: pointer;
+      margin-right: 12px;
+      padding: 0;
+    }
+
+    /* Статистика */
+    .stat-card {
+      background: linear-gradient(135deg, #007aff, #0056b3);
+      color: #fff;
+      border-radius: 14px;
+      padding: 20px;
+      margin-bottom: 16px;
+    }
+
+    .stat-label {
+      font-size: 13px;
+      opacity: 0.8;
+      margin-bottom: 4px;
+    }
+
+    .stat-value {
+      font-size: 28px;
+      font-weight: 700;
+    }
   </style>
+  <!-- Tesseract.js — OCR-распознавание текста с изображений прямо в браузере -->
+  <script src="https://cdn.jsdelivr.net/npm/tesseract.js@5.0.3/dist/tesseract.min.js"></script>
 </head>
 <body>
 
-  <div class="app-container">
-
-    <!-- Loader Modal -->
-    <div class="loader-overlay" id="loader">
-      <div class="spinner"></div>
-      <div style="font-weight: 600;">Распознавание чека...</div>
-      <div class="subtitle">Извлечение товаров и цен</div>
+  <div class="device-container">
+    <!-- Status Bar -->
+    <div class="status-bar">
+      <span>9:41</span>
+      <span>Telegram</span>
+      <span>100%</span>
     </div>
 
-    <!-- SCREEN 1: MAIN / SCAN -->
-    <div class="screen active" id="screen-main">
-      <div class="header">
-        <div>
-          <div class="title">Учет продуктов</div>
-          <div class="subtitle">Сканирование и загрузка чеков</div>
+    <!-- App Content Area -->
+    <div class="app-content">
+
+      <!-- ЭКРАН 1: ГЛАВНЫЙ (СКАНИРОВАНИЕ) -->
+      <div id="screen-main" class="screen active">
+        <div class="title">Запись расходов</div>
+        
+        <div class="upload-box">
+          <span class="upload-icon">📷</span>
+          <div onclick="triggerCamera(event)" style="font-weight: 600; font-size: 16px; color: #007aff;">Сфотографировать чек</div>
+          <div onclick="triggerGallery(event)" style="font-size: 12px; color: #8e8e93; margin-top: 4px; text-decoration: underline;">или загрузите из галереи</div>
+        </div>
+
+        <!-- Скрытые input'ы: первый открывает камеру устройства, второй — галерею -->
+        <input type="file" id="camera-input" accept="image/*" capture="environment" style="display:none" onchange="handleReceiptImage(event)">
+        <input type="file" id="gallery-input" accept="image/*" style="display:none" onchange="handleReceiptImage(event)">
+
+        <div class="subtitle">Последние чеки</div>
+        <div class="card" id="recent-receipts-list">
+          <!-- Заполняется динамически -->
         </div>
       </div>
 
-      <div class="upload-box" onclick="simulateScan()">
-        <div class="upload-icon">📷</div>
-        <div style="font-weight: 600;">Сфотографировать чек</div>
-        <div class="subtitle">или выберите из галереи</div>
-      </div>
+      <!-- ЭКРАН 2: РЕДАКТИРОВАНИЕ И ПРОВЕРКА ЧЕКА -->
+      <div id="screen-edit" class="screen">
+        <div class="screen-header">
+          <button class="btn-back" onclick="showScreen('screen-main')">← Назад</button>
+          <div class="title" style="margin-bottom: 0;">Проверка чека</div>
+        </div>
 
-      <div class="card">
-        <div style="font-weight: 600; font-size: 15px;">Недавние чеки</div>
-        <div id="recent-list">
-          <!-- Dynamic rendering -->
+        <div class="card">
+          <div class="form-group">
+            <label>Магазин / Точка</label>
+            <input type="text" id="edit-store" class="form-input" value="Magnum Cash&Carry">
+          </div>
+          <div class="form-group">
+            <label>Дата чека</label>
+            <input type="date" id="edit-date" class="form-input" value="2026-09-14">
+          </div>
+        </div>
+
+        <div class="subtitle">Товары в чеке</div>
+        <div class="card">
+          <table class="items-table">
+            <thead>
+              <tr>
+                <th style="width: 40%;">Наименование</th>
+                <th style="width: 15%;">Кол</th>
+                <th style="width: 20%;">Цена</th>
+                <th style="width: 20%;">Сумма</th>
+                <th style="width: 5%;"></th>
+              </tr>
+            </thead>
+            <tbody id="items-table-body">
+              <!-- Заполняется динамически -->
+            </tbody>
+          </table>
+          <button class="btn-secondary" style="width: 100%; margin-top: 8px;" onclick="addItemRow()">+ Добавить позицию</button>
+        </div>
+
+        <div class="card" style="display: flex; justify-content: space-between; align-items: center;">
+          <span style="font-weight: 600;">Итоговая сумма:</span>
+          <span id="edit-total-amount" style="font-size: 18px; font-weight: 700; color: #007aff;">0 ₸</span>
+        </div>
+
+        <button class="btn-primary" onclick="saveReceipt()">Сохранить чек</button>
+
+        <div class="card" id="raw-text-card" style="display:none; margin-top: 16px;">
+          <div class="subtitle" style="cursor:pointer;" onclick="toggleRawText()">Распознанный текст (проверить) <span id="raw-text-arrow">▾</span></div>
+          <div id="raw-text-content" style="display:none; font-size:12px; color:#8e8e93; white-space:pre-wrap; max-height:180px; overflow-y:auto;"></div>
         </div>
       </div>
+
+      <!-- ЭКРАН 3: ОТЧЕТ ЗА МЕСЯЦ -->
+      <div id="screen-report" class="screen">
+        <div class="title">Отчет за месяц</div>
+
+        <div class="form-group" style="margin-bottom: 16px;">
+          <select id="report-month-select" class="form-input" onchange="renderReport()" style="font-weight: 600;">
+            <option value="2026-09">Сентябрь 2026</option>
+            <option value="2026-08">Август 2026</option>
+          </select>
+        </div>
+
+        <div class="stat-card">
+          <div class="stat-label">Всего потрачено на продукты</div>
+          <div class="stat-value" id="report-total-sum">0 ₸</div>
+        </div>
+
+        <div class="subtitle">Детализация по чекам</div>
+        <div class="card" id="monthly-receipts-list">
+          <!-- Заполняется динамически -->
+        </div>
+      </div>
+
+      <!-- Loader Overlay (Имитация распознавания) -->
+      <div id="loader" class="loader-overlay">
+        <div class="spinner"></div>
+        <div style="font-weight: 600; color: #1c1c1e;">Распознавание чека...</div>
+        <div id="loader-status" style="font-size: 13px; color: #8e8e93; margin-top: 4px;">Обработка фото...</div>
+      </div>
+
     </div>
 
-    <!-- SCREEN 2: EDIT / VERIFY -->
-    <div class="screen" id="screen-edit">
-      <div class="header">
-        <button class="btn-secondary" onclick="switchScreen('screen-main')">← Назад</button>
-        <div class="title" style="font-size: 16px;">Проверка чека</div>
-      </div>
-
-      <div class="card">
-        <div class="form-group">
-          <label class="form-label">Магазин</label>
-          <input type="text" class="form-input" id="edit-store" value="Supermarket Magnum">
-        </div>
-        <div class="form-group">
-          <label class="form-label">Дата покупки</label>
-          <input type="date" class="form-input" id="edit-date" value="2026-09-14">
-        </div>
-      </div>
-
-      <div class="card">
-        <div style="display: flex; justify-content: space-between; align-items: center;">
-          <div style="font-weight: 600; font-size: 14px;">Позиции чека</div>
-          <button class="btn-secondary" style="padding: 4px 8px; font-size: 12px;" onclick="addItemRow()">+ Добавить</button>
-        </div>
-
-        <div style="font-size: 11px; color: var(--tg-theme-hint-color); display: grid; grid-template-columns: 2fr 1fr 1fr 1fr auto; gap: 6px;">
-          <span>Название</span>
-          <span>Кол-во</span>
-          <span>Цена</span>
-          <span>Сумма</span>
-          <span></span>
-        </div>
-
-        <div id="items-container" style="display: flex; flex-direction: column; gap: 8px;">
-          <!-- Items rendered dynamically -->
-        </div>
-
-        <div style="display: flex; justify-content: space-between; align-items: center; padding-top: 10px; border-top: 1px solid var(--tg-theme-border-color); font-weight: 700;">
-          <span>Итого:</span>
-          <span id="total-amount-display">0 ₸</span>
-        </div>
-      </div>
-
-      <button class="btn-primary" onclick="saveReceipt()">Сохранить чек</button>
-    </div>
-
-    <!-- SCREEN 3: MONTHLY REPORT -->
-    <div class="screen" id="screen-report">
-      <div class="header">
-        <div>
-          <div class="title">Отчет за месяц</div>
-          <div class="subtitle">Сентябрь 2026</div>
-        </div>
-      </div>
-
-      <div class="card" style="background: linear-gradient(135deg, #1e293b, #0f172a); border-color: var(--tg-theme-link-color);">
-        <div class="subtitle">Общие расходы за месяц</div>
-        <div style="font-size: 28px; font-weight: 800; color: var(--tg-theme-link-color);" id="report-total">0 ₸</div>
-        <div class="subtitle" id="report-count">Обработано чеков: 0</div>
-      </div>
-
-      <div class="card">
-        <div style="font-weight: 600; font-size: 15px;">Чеки за сентябрь</div>
-        <div id="monthly-list">
-          <!-- Dynamic rendering -->
-        </div>
-      </div>
-    </div>
-
-    <!-- Bottom Nav -->
-    <div class="nav-bar">
-      <button class="nav-item active" id="nav-main" onclick="switchScreen('screen-main')">
+    <!-- Bottom Navigation Bar -->
+    <div class="bottom-nav">
+      <button class="nav-item active" id="nav-main" onclick="switchTab('screen-main', 'nav-main')">
         <span class="nav-icon">🧾</span>
         <span>Сканер</span>
       </button>
-      <button class="nav-item" id="nav-report" onclick="switchScreen('screen-report')">
+      <button class="nav-item" id="nav-report" onclick="switchTab('screen-report', 'nav-report')">
         <span class="nav-icon">📊</span>
         <span>Отчет</span>
       </button>
     </div>
-
   </div>
 
   <script>
-    // Initialize Telegram WebApp SDK
-    const tg = window.Telegram?.WebApp;
-    if (tg) {
-      tg.ready();
-      tg.expand();
-    }
-
-    // App State
-    let receipts = [
+    // Тестовые вымышленные данные
+    let receiptsData = [
       {
         id: 1,
-        store: "Magnum Daily",
+        store: "Magnum Cash&Carry",
         date: "2026-09-14",
-        total: 4250,
+        total: 4750,
         items: [
-          { name: "Молоко 2.5%", qty: 2, price: 550, sum: 1100 },
-          { name: "Хлеб ржаной", qty: 1, price: 250, sum: 250 },
-          { name: "Сыр Гауда 200г", qty: 1, price: 1900, sum: 1900 },
-          { name: "Яблоки Гала 1кг", qty: 1, price: 1000, sum: 1000 }
+          { name: "Молоко 2.5%", count: 2, price: 450, amount: 900 },
+          { name: "Хлеб формовой", count: 1, price: 200, amount: 200 },
+          { name: "Сыр Гауда 300г", count: 1, price: 1850, amount: 1850 },
+          { name: "Яблоки Гала 1кг", count: 1.8, price: 1000, amount: 1800 }
         ]
       },
       {
         id: 2,
-        store: "Small Supermarket",
+        store: "Small Супермаркет",
         date: "2026-09-10",
-        total: 2800,
+        total: 3200,
         items: [
-          { name: "Яйца 10шт", qty: 1, price: 800, sum: 800 },
-          { name: "Масло сливочное", qty: 1, price: 2000, sum: 2000 }
+          { name: "Яйца 10шт C1", count: 2, price: 650, amount: 1300 },
+          { name: "Масло сливочное", count: 1, price: 1900, amount: 1900 }
+        ]
+      },
+      {
+        id: 3,
+        store: "Магазин у дома",
+        date: "2026-08-28",
+        total: 1500,
+        items: [
+          { name: "Вода 5л", count: 2, price: 400, amount: 800 },
+          { name: "Печенье К чаю", count: 1, price: 700, amount: 700 }
         ]
       }
     ];
 
-    let currentReceipt = null;
+    let currentEditingReceipt = null;
 
-    // Navigation Switches
-    function switchScreen(screenId) {
+    // Инициализация при загрузке
+    document.addEventListener("DOMContentLoaded", () => {
+      renderRecentReceipts();
+      renderReport();
+    });
+
+    // Переключение экранов
+    function showScreen(screenId) {
       document.querySelectorAll('.screen').forEach(s => s.classList.remove('active'));
       document.getElementById(screenId).classList.add('active');
+    }
 
+    function switchTab(screenId, navId) {
+      showScreen(screenId);
       document.querySelectorAll('.nav-item').forEach(n => n.classList.remove('active'));
-      if (screenId === 'screen-main') {
-        document.getElementById('nav-main').classList.add('active');
-        renderRecentList();
-      } else if (screenId === 'screen-report') {
-        document.getElementById('nav-report').classList.add('active');
-        renderReport();
+      document.getElementById(navId).classList.add('active');
+      if(screenId === 'screen-report') renderReport();
+    }
+
+    // Рендер списка последних чеков на главном экране
+    function renderRecentReceipts() {
+      const container = document.getElementById('recent-receipts-list');
+      container.innerHTML = '';
+      
+      receiptsData.slice(0, 5).forEach(r => {
+        const item = document.createElement('div');
+        item.className = 'receipt-item';
+        item.onclick = () => openEditScreen(r.id);
+        item.innerHTML = `
+          <div class="receipt-info">
+            <div class="store">${r.store}</div>
+            <div class="date">${r.date} • ${r.items.length} товара</div>
+          </div>
+          <div class="receipt-amount">${r.total.toLocaleString()} ₸</div>
+        `;
+        container.appendChild(item);
+      });
+    }
+
+    // Открытие камеры устройства
+    function triggerCamera(e) {
+      e.stopPropagation();
+      document.getElementById('camera-input').click();
+    }
+
+    // Открытие галереи для выбора существующего фото
+    function triggerGallery(e) {
+      e.stopPropagation();
+      document.getElementById('gallery-input').click();
+    }
+
+    // Обработка выбранного/сфотографированного файла
+    function handleReceiptImage(event) {
+      const file = event.target.files[0];
+      event.target.value = ''; // сброс, чтобы можно было выбрать тот же файл повторно
+      if (!file) return;
+
+      const reader = new FileReader();
+      reader.onload = (e) => scanReceiptImage(e.target.result);
+      reader.onerror = () => alert('Не удалось прочитать файл. Попробуйте ещё раз.');
+      reader.readAsDataURL(file);
+    }
+
+    // Загружаем скрипт воркера через fetch и оборачиваем в локальный (same-origin) blob.
+    // Это надёжнее, чем встроенный механизм Tesseract.js, в окружениях со строгими
+    // ограничениями Content-Security-Policy на создание Worker из внешних доменов.
+    let cachedWorkerBlobURL = null;
+    async function getWorkerBlobURL() {
+      if (cachedWorkerBlobURL) return cachedWorkerBlobURL;
+      const workerScriptURL = 'https://cdn.jsdelivr.net/npm/tesseract.js@5.0.3/dist/worker.min.js';
+      const response = await fetch(workerScriptURL);
+      if (!response.ok) throw new Error('Не удалось загрузить скрипт распознавания');
+      const scriptText = await response.text();
+      const blob = new Blob([scriptText], { type: 'application/javascript' });
+      cachedWorkerBlobURL = URL.createObjectURL(blob);
+      return cachedWorkerBlobURL;
+    }
+
+    // Реальное сканирование чека: OCR фото -> текст -> разбор на товары
+    async function scanReceiptImage(imageDataUrl) {
+      const loader = document.getElementById('loader');
+      const loaderStatus = document.getElementById('loader-status');
+      loader.style.display = 'flex';
+      loaderStatus.innerText = 'Загрузка модели распознавания...';
+
+      try {
+        const workerBlobURL = await getWorkerBlobURL();
+
+        const result = await Tesseract.recognize(imageDataUrl, 'rus+eng', {
+          workerPath: workerBlobURL,
+          corePath: 'https://cdn.jsdelivr.net/npm/tesseract.js-core@5.0.0/tesseract-core-simd.wasm.js',
+          logger: (m) => {
+            if (m.status === 'recognizing text') {
+              loaderStatus.innerText = `Распознавание текста... ${Math.round(m.progress * 100)}%`;
+            } else if (m.status) {
+              loaderStatus.innerText = m.status;
+            }
+          }
+        });
+
+        const rawText = result.data.text || '';
+        const parsed = parseReceiptText(rawText);
+
+        currentEditingReceipt = {
+          id: Date.now(),
+          store: parsed.store,
+          date: parsed.date,
+          total: parsed.total,
+          items: parsed.items,
+          rawText: rawText
+        };
+
+        populateEditForm(currentEditingReceipt);
+        showScreen('screen-edit');
+      } catch (err) {
+        console.error('OCR error:', err);
+
+        const isWorkerBlocked = /worker/i.test(err.message || '') || err.name === 'SecurityError';
+        if (isWorkerBlocked) {
+          alert('Распознавание текста заблокировано настройками безопасности этого окна предпросмотра (ограничение на Web Worker). При открытии файла как обычной веб-страницы (например, после публикации Mini App или локально в браузере) распознавание будет работать. Пока можно заполнить данные вручную ниже.');
+        } else {
+          alert('Не удалось распознать чек. Попробуйте сделать фото более чётким (хорошее освещение, без бликов) или заполните данные вручную.');
+        }
+
+        currentEditingReceipt = {
+          id: Date.now(),
+          store: '',
+          date: new Date().toISOString().split('T')[0],
+          total: 0,
+          items: [],
+          rawText: ''
+        };
+        populateEditForm(currentEditingReceipt);
+        showScreen('screen-edit');
+      } finally {
+        loader.style.display = 'none';
       }
     }
 
-    // Mock OCR Action
-    function simulateScan() {
-      document.getElementById('loader').style.display = 'flex';
-      setTimeout(() => {
-        document.getElementById('loader').style.display = 'none';
-        
-        currentReceipt = {
-          id: Date.now(),
-          store: "Galmart Supermarket",
-          date: "2026-09-14",
-          total: 3150,
-          items: [
-            { name: "Вода 1.5л", qty: 2, price: 300, sum: 600 },
-            { name: "Кофе растворимый", qty: 1, price: 2550, sum: 2550 }
-          ]
-        };
-        
-        loadEditForm(currentReceipt);
-        switchScreen('screen-edit');
-      }, 1200);
+    // Разбор распознанного текста чека на магазин, дату, товары и итоговую сумму.
+    // Эвристический парсер: чеки бывают очень разного формата, поэтому результат
+    // всегда можно и нужно поправить вручную в форме проверки.
+    function parseReceiptText(text) {
+      const lines = text
+        .split('\n')
+        .map(l => l.replace(/\s+/g, ' ').trim())
+        .filter(l => l.length > 0);
+
+      // --- Дата чека: ищем ДД.ММ.ГГ(ГГ) или ДД/ММ/ГГ(ГГ) ---
+      let date = new Date().toISOString().split('T')[0];
+      for (const line of lines) {
+        const m = line.match(/(\d{2})[.\/](\d{2})[.\/](\d{2,4})/);
+        if (m) {
+          let [, d, mo, y] = m;
+          if (y.length === 2) y = '20' + y;
+          const candidate = `${y}-${mo}-${d}`;
+          if (!isNaN(new Date(candidate).getTime())) {
+            date = candidate;
+            break;
+          }
+        }
+      }
+
+      // --- Магазин: первая осмысленная строка сверху чека ---
+      let store = 'Магазин';
+      const skipStoreWords = /чек|кассир|итог|время|дата|адрес|тел\.|инн|бин/i;
+      for (const line of lines.slice(0, 6)) {
+        if (line.length >= 3 && !/^\d+$/.test(line) && !skipStoreWords.test(line)) {
+          store = line;
+          break;
+        }
+      }
+
+      // --- Строки-мусор, которые не являются товарами ---
+      const skipItemWords = /итого|сумма к оплате|наличными|сдача|безнал|терминал|кассир|карта|скидк|кассовый|фискальн|чек №|nds|ндс/i;
+
+      // Форматы строк товара:
+      // 1) "Название  Кол x Цена  Сумма"
+      const reQtyPriceAmount = /^(.{2,40}?)\s+(\d+[.,]?\d*)\s*[xх*]\s*(\d+[.,]?\d+)\s*=?\s*(\d+[.,]?\d+)?\s*$/i;
+      // 2) "Название  Сумма" (одна цена в конце строки)
+      const reNameAmount = /^(.{2,40}?)\s+(\d+[.,]\d{2}|\d{2,})\s*$/;
+
+      const items = [];
+      for (const line of lines) {
+        if (skipItemWords.test(line)) continue;
+
+        let m = line.match(reQtyPriceAmount);
+        if (m) {
+          const count = parseFloat(m[2].replace(',', '.'));
+          const price = parseFloat(m[3].replace(',', '.'));
+          const amount = m[4] ? parseFloat(m[4].replace(',', '.')) : Math.round(count * price);
+          if (count > 0 && price > 0) {
+            items.push({ name: m[1].trim(), count, price, amount });
+            continue;
+          }
+        }
+
+        m = line.match(reNameAmount);
+        if (m) {
+          const amount = parseFloat(m[2].replace(',', '.'));
+          const name = m[1].trim();
+          // Отсекаем строки, где "название" — это просто дата/номер/индекс
+          if (amount > 0 && amount < 1000000 && !/^\d+$/.test(name) && name.length >= 2) {
+            items.push({ name, count: 1, price: amount, amount });
+          }
+        }
+      }
+
+      // --- Итоговая сумма: ищем строку с "итого" и числом рядом ---
+      let total = items.reduce((sum, i) => sum + i.amount, 0);
+      for (const line of lines) {
+        const m = line.match(/итог[оа]\D{0,10}(\d+[.,]?\d*)/i);
+        if (m) {
+          const parsedTotal = parseFloat(m[1].replace(',', '.'));
+          if (parsedTotal > 0) {
+            total = parsedTotal;
+            break;
+          }
+        }
+      }
+
+      if (items.length === 0) {
+        items.push({ name: '', count: 1, price: 0, amount: 0 });
+      }
+
+      return { store, date, total, items };
     }
 
-    // Load Data into Form
-    function loadEditForm(receipt) {
+    // Показать/скрыть распознанный сырой текст на экране проверки чека
+    function toggleRawText() {
+      const content = document.getElementById('raw-text-content');
+      const arrow = document.getElementById('raw-text-arrow');
+      const isHidden = content.style.display === 'none';
+      content.style.display = isHidden ? 'block' : 'none';
+      arrow.innerText = isHidden ? '▴' : '▾';
+    }
+
+    // Открытие существующего чека для редактирования
+    function openEditScreen(id) {
+      const r = receiptsData.find(item => item.id === id);
+      if (r) {
+        currentEditingReceipt = JSON.parse(JSON.stringify(r));
+        populateEditForm(currentEditingReceipt);
+        showScreen('screen-edit');
+      }
+    }
+
+    // Заполнение формы редактирования
+    function populateEditForm(receipt) {
       document.getElementById('edit-store').value = receipt.store;
       document.getElementById('edit-date').value = receipt.date;
       
-      const container = document.getElementById('items-container');
-      container.innerHTML = '';
+      const tbody = document.getElementById('items-table-body');
+      tbody.innerHTML = '';
       
       receipt.items.forEach((item, index) => {
-        container.appendChild(createItemRow(item, index));
+        addRowToTable(item.name, item.count, item.price, item.amount);
       });
       
       recalculateTotal();
+
+      // Показываем распознанный текст (если чек пришёл со скана), чтобы можно было сверить
+      const rawCard = document.getElementById('raw-text-card');
+      const rawContent = document.getElementById('raw-text-content');
+      if (receipt.rawText) {
+        rawContent.innerText = receipt.rawText;
+        rawContent.style.display = 'none';
+        document.getElementById('raw-text-arrow').innerText = '▾';
+        rawCard.style.display = 'block';
+      } else {
+        rawCard.style.display = 'none';
+      }
     }
 
-    function createItemRow(item = { name: '', qty: 1, price: 0, sum: 0 }) {
-      const row = document.createElement('div');
-      row.className = 'item-row';
-      row.innerHTML = `
-        <input type="text" class="form-input item-name" value="${item.name}" placeholder="Товар">
-        <input type="number" class="form-input item-qty" value="${item.qty}" min="1" onchange="updateRowSum(this)">
-        <input type="number" class="form-input item-price" value="${item.price}" min="0" onchange="updateRowSum(this)">
-        <input type="number" class="form-input item-sum" value="${item.sum}" readonly>
-        <button class="btn-delete" onclick="deleteRow(this)">×</button>
+    // Добавление строки в таблицу
+    function addRowToTable(name = '', count = 1, price = 0, amount = 0) {
+      const tbody = document.getElementById('items-table-body');
+      const tr = document.createElement('tr');
+      tr.innerHTML = `
+        <td><input type="text" class="item-name" value="${name}" placeholder="Товар"></td>
+        <td><input type="number" class="item-count" value="${count}" step="0.1" onchange="updateRowAmount(this)"></td>
+        <td><input type="number" class="item-price" value="${price}" onchange="updateRowAmount(this)"></td>
+        <td><input type="number" class="item-amount" value="${amount || count * price}" readonly></td>
+        <td><button class="btn-danger" onclick="removeRow(this)">✕</button></td>
       `;
-      return row;
+      tbody.appendChild(tr);
+      recalculateTotal();
     }
 
     function addItemRow() {
-      const container = document.getElementById('items-container');
-      container.appendChild(createItemRow());
+      addRowToTable('', 1, 0, 0);
+    }
+
+    function removeRow(btn) {
+      btn.closest('tr').remove();
       recalculateTotal();
     }
 
-    function deleteRow(btn) {
-      btn.closest('.item-row').remove();
+    // Расчет суммы строки
+    function updateRowAmount(input) {
+      const tr = input.closest('tr');
+      const count = parseFloat(tr.querySelector('.item-count').value) || 0;
+      const price = parseFloat(tr.querySelector('.item-price').value) || 0;
+      const amountInput = tr.querySelector('.item-amount');
+      
+      const amount = Math.round(count * price);
+      amountInput.value = amount;
       recalculateTotal();
     }
 
-    function updateRowSum(input) {
-      const row = input.closest('.item-row');
-      const qty = parseFloat(row.querySelector('.item-qty').value) || 0;
-      const price = parseFloat(row.querySelector('.item-price').value) || 0;
-      row.querySelector('.item-sum').value = qty * price;
-      recalculateTotal();
-    }
-
+    // Пересчет общей суммы чека
     function recalculateTotal() {
       let total = 0;
-      document.querySelectorAll('.item-sum').forEach(inp => {
+      document.querySelectorAll('.item-amount').forEach(inp => {
         total += parseFloat(inp.value) || 0;
       });
-      document.getElementById('total-amount-display').innerText = `${total.toLocaleString()} ₸`;
+      document.getElementById('edit-total-amount').innerText = `${total.toLocaleString()} ₸`;
     }
 
-    // Save Logic
+    // Сохранение чека
     function saveReceipt() {
       const store = document.getElementById('edit-store').value;
       const date = document.getElementById('edit-date').value;
+      
       const items = [];
-      let total = 0;
-
-      document.querySelectorAll('.item-row').forEach(row => {
-        const name = row.querySelector('.item-name').value;
-        const qty = parseFloat(row.querySelector('.item-qty').value) || 0;
-        const price = parseFloat(row.querySelector('.item-price').value) || 0;
-        const sum = parseFloat(row.querySelector('.item-sum').value) || 0;
-        
-        if (name) {
-          items.push({ name, qty, price, sum });
-          total += sum;
-        }
+      document.querySelectorAll('#items-table-body tr').forEach(tr => {
+        items.push({
+          name: tr.querySelector('.item-name').value,
+          count: parseFloat(tr.querySelector('.item-count').value) || 0,
+          price: parseFloat(tr.querySelector('.item-price').value) || 0,
+          amount: parseFloat(tr.querySelector('.item-amount').value) || 0
+        });
       });
 
-      if (currentReceipt) {
-        const idx = receipts.findIndex(r => r.id === currentReceipt.id);
-        if (idx !== -1) {
-          receipts[idx] = { id: currentReceipt.id, store, date, total, items };
-        } else {
-          receipts.unshift({ id: Date.now(), store, date, total, items });
-        }
+      const total = items.reduce((sum, item) => sum + item.amount, 0);
+
+      const existingIndex = receiptsData.findIndex(r => r.id === currentEditingReceipt.id);
+      const savedData = {
+        id: currentEditingReceipt.id,
+        store: store || "Покупка",
+        date: date,
+        total: total,
+        items: items
+      };
+
+      if (existingIndex >= 0) {
+        receiptsData[existingIndex] = savedData;
+      } else {
+        receiptsData.unshift(savedData);
       }
 
-      switchScreen('screen-main');
+      renderRecentReceipts();
+      switchTab('screen-main', 'nav-main');
     }
 
-    // Render Data
-    function renderRecentList() {
-      const container = document.getElementById('recent-list');
-      container.innerHTML = '';
-
-      receipts.slice(0, 3).forEach(r => {
-        const item = document.createElement('div');
-        item.className = 'list-item';
-        item.onclick = () => {
-          currentReceipt = r;
-          loadEditForm(r);
-          switchScreen('screen-edit');
-        };
-        item.innerHTML = `
-          <div>
-            <div class="item-title">${r.store}</div>
-            <div class="item-sub">${r.date} • ${r.items.length} поз.</div>
-          </div>
-          <div class="item-amount">${r.total.toLocaleString()} ₸</div>
-        `;
-        container.appendChild(item);
-      });
-    }
-
+    // Рендер экрана отчетов за месяц
     function renderReport() {
-      const container = document.getElementById('monthly-list');
+      const selectedMonth = document.getElementById('report-month-select').value;
+      const container = document.getElementById('monthly-receipts-list');
+      const totalSumEl = document.getElementById('report-total-sum');
+      
       container.innerHTML = '';
-      let sumTotal = 0;
+      let monthTotal = 0;
 
-      receipts.forEach(r => {
-        sumTotal += r.total;
-        const item = document.createElement('div');
-        item.className = 'list-item';
-        item.onclick = () => {
-          currentReceipt = r;
-          loadEditForm(r);
-          switchScreen('screen-edit');
-        };
-        item.innerHTML = `
-          <div>
-            <div class="item-title">${r.store}</div>
-            <div class="item-sub">${r.date}</div>
-          </div>
-          <div class="item-amount">${r.total.toLocaleString()} ₸</div>
-        `;
-        container.appendChild(item);
-      });
+      const filtered = receiptsData.filter(r => r.date.startsWith(selectedMonth));
 
-      document.getElementById('report-total').innerText = `${sumTotal.toLocaleString()} ₸`;
-      document.getElementById('report-count').innerText = `Обработано чеков: ${receipts.length}`;
+      if (filtered.length === 0) {
+        container.innerHTML = '<div style="text-align:center; color:#8e8e93; padding: 20px;">Нет чеков за этот месяц</div>';
+      } else {
+        filtered.forEach(r => {
+          monthTotal += r.total;
+          const item = document.createElement('div');
+          item.className = 'receipt-item';
+          item.onclick = () => openEditScreen(r.id);
+          item.innerHTML = `
+            <div class="receipt-info">
+              <div class="store">${r.store}</div>
+              <div class="date">${r.date} • ${r.items.length} позиций</div>
+            </div>
+            <div class="receipt-amount">${r.total.toLocaleString()} ₸</div>
+          `;
+          container.appendChild(item);
+        });
+      }
+
+      totalSumEl.innerText = `${monthTotal.toLocaleString()} ₸`;
     }
-
-    // Initial Load
-    renderRecentList();
   </script>
 </body>
 </html>
